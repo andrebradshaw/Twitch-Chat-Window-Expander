@@ -189,8 +189,9 @@ window.onresize = ()=>{
     }
     function setFollowBarPopOut(){
         let elm = document.getElementById('sideNav');
+// side-bar-contents
         Array.from(elm.getElementsByClassName('side-nav-header-icon')).forEach(itm=> {itm.outerHTML = '';});
-        // inlineStyler(elm,`{position: fixed;  top: 50px; left:0px; border: 0px solid transparent; z-index:${topZIndexer()}; height: ${window.innerHeight-100}px;}`);
+        // inlineStyler(elm,`{position: fixed;  top: 50px; left:0px; border: 0px solid transparent; z-index:${topZIndexer()}; height: ${window.innerHeight-100}px;}`); side-nav--expanded
         let side_nav_sections = Array.from(elm.getElementsByClassName('side-nav-section')).forEach(sect=> {
             let head = sect.getElementsByClassName('side-nav-header')?.[0];
             inlineStyler(head,`{display: grid; grid-template-columns: 20px 1fr;}`);
@@ -205,42 +206,42 @@ window.onresize = ()=>{
             inlineStyler(init_btn,`{cursor: pointer;}`);
             init_btn.onmouseenter = ()=> { inlineStyler(init_btn,`{background: #772ce885;}`); };
             init_btn.onmouseleave = ()=> { inlineStyler(init_btn,`{background: transparent;}`); };
-            // init_btn.onclick = ()=> { popOutChat(); init_btn.outerHTML = ''; };
+            init_btn.onclick = ()=> { popOutFollowSection(init_btn); init_btn.outerHTML = ''; };
         })
         // collapse-toggle
     }
     setFollowBarPopOut()
 
-    function popOutFollowSection(){
-        var sect = document.getElementById(this.getAttribute('popout_container_id'));
+    function popOutFollowSection(elm){
+        var sect = document.getElementById(elm.getAttribute('popout_container_id'));
         inlineStyler(sect,`{position: fixed; z-index: ${topZIndexer()};}`);
-        var head_text = sect.getElementsByClassName('nav_text')?.[0];
 
-        
-        
-        var head_text = document.getElementById('chat-room-header-label');
-        a(head_text.parentElement,[['panel_move_id','main_chat_holder'],['id','chat_header_move']]);
+        var head_text = sect.getElementsByClassName('nav_text')?.[0];
+        var head_text_snake_cased = head_text.innerText.toLowerCase().replace(/\s+/g,'_');
+//         var head_text = document.getElementById('chat-room-header-label');
+        a(head_text.parentElement,[['panel_move_id',`main_${head_text_snake_cased}_holder`],['id',`chat_${head_text_snake_cased}_move`]]);
         inlineStyler(head_text.parentElement,`{cursor: move; transform: translate(0px,6px);}`);
         head_text.parentElement.onmouseover = dragElement;
 
         var footer_elm = document.createElement('div');
-        a(footer_elm,[['class','mover-bottom-gradient'],['id','chat_footer_holder']]);
+        a(footer_elm,[['class','mover-bottom-gradient'],['id',`${head_text_snake_cased}_footer_holder`]]);
         main_chat_holder.appendChild(footer_elm);
         inlineStyler(footer_elm,`{height: 19px; display: grid; grid-template-columns: 1fr 19px;}`);
 
         var footer_text = document.createElement('div');
         footer_elm.appendChild(footer_text);
-        a(footer_text,[['panel_move_id','main_chat_holder'],['id','chat_footer_move']]);
+        a(footer_text,[['panel_move_id',`main_${head_text_snake_cased}_holder`],['id',`${head_text_snake_cased}_footer_move`]]);
         inlineStyler(footer_text,`{width: calc(100% - 19px); cursor: move;}`);
         footer_text.onmouseover = dragElement;
 
         var foot_resizer = document.createElement('div');
-        a(foot_resizer,[['id','chat_foot_resizer'],['class','chat_foot_resizer foot_resizer'],['resize_container','main_chat_holder'],['style_info','display: grid; grid-template-columns: 1fr 20px; grid-gap: 10px;']]);
+        a(foot_resizer,[['id',`${head_text_snake_cased}_foot_resizer`],['class',`${head_text_snake_cased}_foot_resizer foot_resizer`],['resize_container',`main_${head_text_snake_cased}_holder`],['style_info','display: grid; grid-template-columns: 1fr 20px; grid-gap: 10px;']]);
         inlineStyler(foot_resizer,`{width: 19px; cursor: nw-resize; z-index: ${topZIndexer()};}`);
         foot_resizer.innerHTML = icons.resize;
         footer_elm.appendChild(foot_resizer)
         foot_resizer.onmouseover = adjustElementSize;
     }
+
 
     function popOutVideo(){ 
         if(document.getElementById('video_mover_header')) document.getElementById('video_mover_header').outerHTML = '';
