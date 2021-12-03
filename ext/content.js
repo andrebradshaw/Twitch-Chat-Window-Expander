@@ -56,6 +56,7 @@ async function initResizePopOutComponents(){
 
     function dragElement() {
         var el = document.getElementById(this.getAttribute('panel_move_id')); /*requires the trigger elm contains the ID of the elm to be moved as ['panel_move_id','TARGET_ID']*/
+        var actor = this;
         var pos1 = 0,    pos2 = 0,    pos3 = 0,    pos4 = 0;
         if (document.getElementById(this.id)) document.getElementById(this.id).onmousedown = dragMouseDown;
         else this.onmousedown = dragMouseDown;
@@ -67,6 +68,7 @@ async function initResizePopOutComponents(){
             inlineStyler(el,`{z-index: ${topZIndexer()}}`);
         }
         function elementDrag(e) {
+            console.log(actor.getAttribute('id'));
             pos1 = pos3 - e.clientX;
             pos2 = pos4 - e.clientY;
             pos3 = e.clientX;
@@ -89,9 +91,10 @@ async function initResizePopOutComponents(){
     };
     function adjustElementSize(){
         var cbod = document.getElementById(this.getAttribute('resize_container'));
-        var footer = cbod.getElementsByClassName('foot_resizer')?.[0];
+        var footer = document.getElementById(cbod.getAttribute('foot_resizer_id'));
         var is_chat = /chat/.test(this.getAttribute('class'));
-        var foot_height = 0;
+        var is_nav = /nav/.test(this.getAttribute('class'));
+        var foot_height = 0; //is_nav ? 19 : 0;
         var pos1 = 0,    pos2 = 0,    pos3 = 0,    pos4 = 0;
 
         var width = cbod.getBoundingClientRect().width;
@@ -113,6 +116,7 @@ async function initResizePopOutComponents(){
             document.onmouseup = null;
             document.onmousemove = null;
             cbod.style.opacity = '1';
+            updateSideNaveGridLayout();
         }
     }
 
@@ -121,9 +125,14 @@ async function initResizePopOutComponents(){
     //
     var chat_is_hidden = document.getElementsByClassName('right-column--below')?.[0];
     // var chat_sidebar_hide_elm = document.getElementsByClassName('simplebar-track vertical')?.[0];
-window.onresize = ()=>{
-    if(chat_is_hidden) chat_is_hidden.setAttribute('class','Layout-sc-nxg1ff-0 kdzwbB right-column right-column--beside');
-};
+    window.onresize = ()=>{
+        if(chat_is_hidden) chat_is_hidden.setAttribute('class','Layout-sc-nxg1ff-0 kdzwbB right-column right-column--beside');
+    };
+
+    function updateSideNaveGridLayout(){
+        let grid_elm = document.getElementsByClassName('side-bar-contents')?.[0]?.firstChild?.firstChild;
+        inlineStyler(grid_elm,`{display: grid; grid-template-columns:${Array.from(document.getElementsByClassName('side-nav-section')).map(n=> ' 1fr').reduce((a,b)=> a+b)}; grid-gap: 0px;}`);
+    }
     function hideAnnoyingButtons(){
         if(document.getElementsByClassName('channel-leaderboard')?.[0]) document.getElementsByClassName('channel-leaderboard')[0].style.display = 'none';
         if(document.getElementsByClassName('right-column__toggle-visibility')?.[0]) {
@@ -158,84 +167,112 @@ window.onresize = ()=>{
     function popOutChat(){
         if(document.getElementById('chat_foot_resizer')) document.getElementById('chat_foot_resizer').outerHTML = '';
         var main_chat_holder = document.getElementById('main_chat_holder');
+        a(main_chat_holder,[['foot_resizer_id','chat_foot_resizer']]);
         inlineStyler(main_chat_holder,`{position: fixed; z-index: ${topZIndexer()}; height: ${window.innerHeight - 100}px;}`);
-
+        
         var main_chat_header = document.getElementById('main_chat_header');
         a(main_chat_header,[['class','mover-top-gradient']]);
         inlineStyler(main_chat_header,`{grid-template-columns: 1fr 2px;}`);
 
-        var chat_label = document.getElementById('chat-room-header-label');
+        let chat_label = document.getElementById('chat-room-header-label');
         a(chat_label.parentElement,[['panel_move_id','main_chat_holder'],['id','chat_header_move']]);
-        inlineStyler(chat_label.parentElement,`{cursor: move; transform: translate(0px,6px);}`);
+        inlineStyler(chat_label.parentElement,`{cursor: move; transform: translate(6px,0px);}`);
         chat_label.parentElement.onmouseover = dragElement;
 
-        var footer_elm = document.createElement('div');
+        let footer_elm = document.createElement('div');
         a(footer_elm,[['class','mover-bottom-gradient'],['id','chat_footer_holder']]);
         main_chat_holder.appendChild(footer_elm);
         inlineStyler(footer_elm,`{height: 19px; display: grid; grid-template-columns: 1fr 19px;}`);
 
-        var footer_text = document.createElement('div');
+        let footer_text = document.createElement('div');
         footer_elm.appendChild(footer_text);
         a(footer_text,[['panel_move_id','main_chat_holder'],['id','chat_footer_move']]);
         inlineStyler(footer_text,`{width: calc(100% - 19px); cursor: move;}`);
         footer_text.onmouseover = dragElement;
 
-        var foot_resizer = document.createElement('div');
+        let foot_resizer = document.createElement('div');
         a(foot_resizer,[['id','chat_foot_resizer'],['class','chat_foot_resizer foot_resizer'],['resize_container','main_chat_holder'],['style_info','display: grid; grid-template-columns: 1fr 20px; grid-gap: 10px;']]);
         inlineStyler(foot_resizer,`{width: 19px; cursor: nw-resize; z-index: ${topZIndexer()};}`);
         foot_resizer.innerHTML = icons.resize;
         footer_elm.appendChild(foot_resizer)
         foot_resizer.onmouseover = adjustElementSize;
     }
+
     function setFollowBarPopOut(){
         let elm = document.getElementById('sideNav');
 // side-bar-contents
+        // inlineStyler(document.getElementsByClassName('side-bar-contents')?.[0],`{display:grid; grid-template-columns: 1fr 1fr 1fr; grid-gap:0px;}`);
         Array.from(elm.getElementsByClassName('side-nav-header-icon')).forEach(itm=> {itm.outerHTML = '';});
         // inlineStyler(elm,`{position: fixed;  top: 50px; left:0px; border: 0px solid transparent; z-index:${topZIndexer()}; height: ${window.innerHeight-100}px;}`); side-nav--expanded
         let side_nav_sections = Array.from(elm.getElementsByClassName('side-nav-section')).forEach(sect=> {
             let head = sect.getElementsByClassName('side-nav-header')?.[0];
             inlineStyler(head,`{display: grid; grid-template-columns: 20px 1fr;}`);
             let head_text = head.getElementsByTagName('h5')?.[0];
+            var head_text_snake_cased = head_text.innerText.toLowerCase().replace(/\s+/g,'_');
             a(head_text,[['class','nav_text']]);
             inlineStyler(head_text,`{transform: translate(0px,-10px); font-size: 12px;}`);
             a(sect,[['id',`main_${head_text.innerText.toLowerCase().replace(/\s+/g,'_')}_holder`]]);
             var init_btn = document.createElement('div');
-            a(init_btn,[['id',`init_${head_text.innerText.toLowerCase().replace(/\s+/g,'_')}_pop_btn`],['popout_container_id',`main_${head_text.innerText.toLowerCase().replace(/\s+/g,'_')}_holder`],['movable_container_id',`main_${head_text.innerText.toLowerCase().replace(/\s+/g,'_')}_holder`]]);
+            a(init_btn,[['id',`init_${head_text_snake_cased}_pop_btn`],['popout_container_id',`sideNav`],['class','nav_pop_btn'],['movable_container_id',`sideNav`]]);
             init_btn.innerHTML = `<svg width="100%" height="100%" version="1.1" viewBox="0 0 20 20" x="0px" y="0px" class="ScIconSVG-sc-1bgeryd-1 eOJUoR"><g><path d="M12 4h2.586L9.293 9.293l1.414 1.414L16 5.414V8h2V2h-6v2z"></path><path d="M4 4h6v2H4v10h10v-6h2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"></path></g></svg>`;
             head.insertBefore(init_btn,head.firstChild);
             inlineStyler(init_btn,`{cursor: pointer;}`);
             init_btn.onmouseenter = ()=> { inlineStyler(init_btn,`{background: #772ce885;}`); };
             init_btn.onmouseleave = ()=> { inlineStyler(init_btn,`{background: transparent;}`); };
-            init_btn.onclick = ()=> { popOutFollowSection(init_btn); init_btn.outerHTML = ''; };
-        })
+            init_btn.onclick = ()=> { popOutFollowSection(init_btn); };
+        });
         // collapse-toggle
     }
     setFollowBarPopOut()
 
     function popOutFollowSection(elm){
+        // let main = document.getElementById('sideNav');
         var sect = document.getElementById(elm.getAttribute('popout_container_id'));
         inlineStyler(sect,`{position: fixed; z-index: ${topZIndexer()};}`);
 
-        var head_text = sect.getElementsByClassName('nav_text')?.[0];
-        var head_text_snake_cased = head_text.innerText.toLowerCase().replace(/\s+/g,'_');
-//         var head_text = document.getElementById('chat-room-header-label');
-        a(head_text.parentElement,[['panel_move_id',`main_${head_text_snake_cased}_holder`],['id',`chat_${head_text_snake_cased}_move`]]);
-        inlineStyler(head_text.parentElement,`{cursor: move; transform: translate(0px,6px);}`);
-        head_text.parentElement.onmouseover = dragElement;
+        var resize_elm = sect?.firstChild;
+        a(resize_elm,[['id','nav_grid_resize_container'],['foot_resizer_id','nav_foot_resizer']])//resize_container
+        inlineStyler(resize_elm,`{width: 450px;}`);
 
+        var grid_elm = sect.getElementsByClassName('side-bar-contents')?.[0]?.firstChild?.firstChild;
+        a(grid_elm,[['id','nav_grid_container']]);
+        inlineStyler(grid_elm,`{display: grid; grid-template-columns:${Array.from(document.getElementsByClassName('side-nav-section')).map(n=> ' 1fr').reduce((a,b)=> a+b)}; grid-gap: 0px;}`);
+        // style="width: 400px;" 
+        // inlineStyler(document.getElementsByClassName('side-bar-contents')?.[0],`{display:grid; grid-template-columns: 1fr 1fr 1fr; grid-gap:0px;}`);
+
+        Array.from(document.getElementsByClassName('side-nav-header')).forEach(sn=> {
+            a(sn,[['class','mover-top-gradient']]);
+            inlineStyler(sn,`{display: grid; grid-template-columns: 1fr;}`);
+            a(sn,[['panel_move_id',`sideNav`],['id',`sideNav`]]);
+            inlineStyler(sn,`{cursor: move;}`);
+            sn.onmouseover = dragElement;
+        });        
+        Array.from(document.getElementsByClassName('nav_text')).forEach(sn=> {
+            let head_text_snake_cased = sn.innerText.toLowerCase().replace(/\s+/g,'_');
+            inlineStyler(sn,`{transform: translate(0px,6px); font-size: 10px;}`);
+            // sn.parentElement.onmouseover = dragElement;
+        });
+        Array.from(document.getElementsByClassName('nav_pop_btn')).forEach(sn=> {
+            sn.outerHTML = '';
+        });
+
+        // var nav_input_holder = document.getElementsByClassName('side-nav-search-input')?.[0];
+        // inlineStyler(nav_input_holder,`{padding:0px;}`);
+        
         var footer_elm = document.createElement('div');
-        a(footer_elm,[['class','mover-bottom-gradient'],['id',`${head_text_snake_cased}_footer_holder`]]);
-        main_chat_holder.appendChild(footer_elm);
+        a(footer_elm,[['class','mover-bottom-gradient'],['id',`nav_footer_holder`]]);
+        // nav_input_holder.appendChild(footer_elm);
+        resize_elm.appendChild(footer_elm);
         inlineStyler(footer_elm,`{height: 19px; display: grid; grid-template-columns: 1fr 19px;}`);
 
         var footer_text = document.createElement('div');
         footer_elm.appendChild(footer_text);
-        a(footer_text,[['panel_move_id',`main_${head_text_snake_cased}_holder`],['id',`${head_text_snake_cased}_footer_move`]]);
+        a(footer_text,[['panel_move_id',`sideNav`],['id',`nav_footer_move`]]);
         inlineStyler(footer_text,`{width: calc(100% - 19px); cursor: move;}`);
-        footer_text.onmouseover = dragElement;
+        // footer_text.onmouseover = dragElement;
 
         var foot_resizer = document.createElement('div');
-        a(foot_resizer,[['id',`${head_text_snake_cased}_foot_resizer`],['class',`${head_text_snake_cased}_foot_resizer foot_resizer`],['resize_container',`main_${head_text_snake_cased}_holder`],['style_info','display: grid; grid-template-columns: 1fr 20px; grid-gap: 10px;']]);
+        a(foot_resizer,[['id',`nav_foot_resizer`],['class',`nav_foot_resizer foot_resizer`],['resize_container',`nav_grid_resize_container`],['style_info','display: grid; grid-template-columns: 1fr 20px; grid-gap: 10px;']]);
         inlineStyler(foot_resizer,`{width: 19px; cursor: nw-resize; z-index: ${topZIndexer()};}`);
         foot_resizer.innerHTML = icons.resize;
         footer_elm.appendChild(foot_resizer)
@@ -281,3 +318,6 @@ window.onresize = ()=>{
 }
 
 initResizePopOutComponents();
+
+
+
