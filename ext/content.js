@@ -55,11 +55,14 @@ async function initResizePopOutComponents(){
     setCSS('twitch_pop_custom_css');
 
     function dragElement() {
-        var el = document.getElementById(this.getAttribute('panel_move_id')); /*requires the trigger elm contains the ID of the elm to be moved as ['panel_move_id','TARGET_ID']*/
+// console.log(this.getAttibute('panel_move_id'));
+        let actor = this;
+        var el = document.getElementById(actor.getAttribute('panel_move_id')); /*requires the trigger elm contains the ID of the elm to be moved as ['panel_move_id','TARGET_ID']*/
 //         var actor = this;
+// console.log(el);
         var pos1 = 0,    pos2 = 0,    pos3 = 0,    pos4 = 0;
-        if (document.getElementById(this.id)) document.getElementById(this.id).onmousedown = dragMouseDown;
-        else this.onmousedown = dragMouseDown;
+        if (document.getElementById(actor.id)) document.getElementById(actor.id).onmousedown = dragMouseDown;
+        else actor.onmousedown = dragMouseDown;
         function dragMouseDown(e) {
             pos3 = e.clientX;
             pos4 = e.clientY;
@@ -176,7 +179,7 @@ async function initResizePopOutComponents(){
         let chat_label = document.getElementById('chat-room-header-label');
         a(chat_label.parentElement,[['panel_move_id','main_chat_holder'],['id','chat_header_move']]);
         inlineStyler(chat_label.parentElement,`{cursor: move; transform: translate(6px,0px);}`);
-        chat_label.parentElement.onmouseover = dragElement;
+        chat_label.parentElement.onmouseover = dragElement;//()=> dragElement(chat_label);
 
         let footer_elm = document.createElement('div');
         a(footer_elm,[['class','mover-bottom-gradient'],['id','chat_footer_holder']]);
@@ -187,7 +190,7 @@ async function initResizePopOutComponents(){
         footer_elm.appendChild(footer_text);
         a(footer_text,[['panel_move_id','main_chat_holder'],['id','chat_footer_move']]);
         inlineStyler(footer_text,`{width: calc(100% - 19px); cursor: move;}`);
-        footer_text.onmouseover = dragElement;
+        footer_text.onmouseover = dragElement;//()=> dragElement(footer_text);
 
         let foot_resizer = document.createElement('div');
         a(foot_resizer,[['id','chat_foot_resizer'],['class','chat_foot_resizer foot_resizer'],['resize_container','main_chat_holder'],['style_info','display: grid; grid-template-columns: 1fr 20px; grid-gap: 10px;']]);
@@ -244,7 +247,7 @@ async function initResizePopOutComponents(){
             inlineStyler(sn,`{display: grid; grid-template-columns: 1fr;}`);
             a(sn,[['panel_move_id',`sideNav`],['id',`nav_move_${i}`]]);
             inlineStyler(sn,`{cursor: move;}`);
-            sn.onmouseover = dragElement;
+            sn.onmouseover = dragElement;//()=> dragElement('sideNav');
         });        
         Array.from(document.getElementsByClassName('nav_text')).forEach(sn=> {
             let head_text_snake_cased = sn.innerText.toLowerCase().replace(/\s+/g,'_');
@@ -281,11 +284,15 @@ async function initResizePopOutComponents(){
 
     function popOutChannelInfoContent(){
         let channel_info_cont = document.getElementsByClassName('channel-root__info')?.[0];
-        a(channel_info_cont,[['class','mover-top-gradient'],['id','channel_information_panel'],['style',`positon: fixed; top:0px; z-index: ${topZIndexer()};overflow: auto; height:300px;`]]);
+        a(channel_info_cont,[
+        ['class','mover-top-gradient'],
+        ['id','channel_information_panel'],
+        ['style',`positon: fixed; top:0px; z-index: ${topZIndexer()};overflow: auto; height:300px;`]
+        ]);
        
-        let header = document.getElementsByClassName('metadata-layout__support')?.[0];
-        a(header,[['id','channel_info_header'],['panel_mov_id','channel_information_panel'],['style',`cursor: move;`]]);
-        header.onmouseover = dragElement;
+        let header = document.getElementsByClassName('channel-info-content')?.[0];
+        a(header,[['id','channel_info_header'],['panel_move_id','channel_information_panel'],['style',`cursor: move;`]]);
+        header.onmouseover = dragElement;//()=> dragElement(header);
 
     }
     
