@@ -56,7 +56,7 @@ async function initResizePopOutComponents(){
 
     function dragElement() {
         var el = document.getElementById(this.getAttribute('panel_move_id')); /*requires the trigger elm contains the ID of the elm to be moved as ['panel_move_id','TARGET_ID']*/
-        var actor = this;
+//         var actor = this;
         var pos1 = 0,    pos2 = 0,    pos3 = 0,    pos4 = 0;
         if (document.getElementById(this.id)) document.getElementById(this.id).onmousedown = dragMouseDown;
         else this.onmousedown = dragMouseDown;
@@ -68,7 +68,6 @@ async function initResizePopOutComponents(){
             inlineStyler(el,`{z-index: ${topZIndexer()}}`);
         }
         function elementDrag(e) {
-            console.log(actor.getAttribute('id'));
             pos1 = pos3 - e.clientX;
             pos2 = pos4 - e.clientY;
             pos3 = e.clientX;
@@ -240,10 +239,10 @@ async function initResizePopOutComponents(){
         // style="width: 400px;" 
         // inlineStyler(document.getElementsByClassName('side-bar-contents')?.[0],`{display:grid; grid-template-columns: 1fr 1fr 1fr; grid-gap:0px;}`);
 
-        Array.from(document.getElementsByClassName('side-nav-header')).forEach(sn=> {
+        Array.from(document.getElementsByClassName('side-nav-header')).forEach((sn,i)=> {
             a(sn,[['class','mover-top-gradient']]);
             inlineStyler(sn,`{display: grid; grid-template-columns: 1fr;}`);
-            a(sn,[['panel_move_id',`sideNav`],['id',`sideNav`]]);
+            a(sn,[['panel_move_id',`sideNav`],['id',`nav_move_${i}`]]);
             inlineStyler(sn,`{cursor: move;}`);
             sn.onmouseover = dragElement;
         });        
@@ -256,13 +255,13 @@ async function initResizePopOutComponents(){
             sn.outerHTML = '';
         });
 
-        // var nav_input_holder = document.getElementsByClassName('side-nav-search-input')?.[0];
-        // inlineStyler(nav_input_holder,`{padding:0px;}`);
+        var nav_input_holder = document.getElementsByClassName('side-nav-search-input')?.[0];
+        inlineStyler(nav_input_holder,`{padding:0px;}`);
         
         var footer_elm = document.createElement('div');
         a(footer_elm,[['class','mover-bottom-gradient'],['id',`nav_footer_holder`]]);
-        // nav_input_holder.appendChild(footer_elm);
-        resize_elm.appendChild(footer_elm);
+        nav_input_holder.appendChild(footer_elm);
+//         resize_elm.appendChild(footer_elm);
         inlineStyler(footer_elm,`{height: 19px; display: grid; grid-template-columns: 1fr 19px;}`);
 
         var footer_text = document.createElement('div');
@@ -277,7 +276,19 @@ async function initResizePopOutComponents(){
         foot_resizer.innerHTML = icons.resize;
         footer_elm.appendChild(foot_resizer)
         foot_resizer.onmouseover = adjustElementSize;
+        popOutChannelInfoContent();
     }
+
+    function popOutChannelInfoContent(){
+        let channel_info_cont = document.getElementsByClassName('channel-root__info')?.[0];
+        a(channel_info_cont,[['class','mover-top-gradient'],['id','channel_information_panel'],['style',`positon: fixed; top:0px; z-index: ${topZIndexer()};overflow: auto; height:300px;`]]);
+       
+        let header = document.getElementsByClassName('metadata-layout__support')?.[0];
+        a(header,[['id','channel_info_header'],['panel_mov_id','channel_information_panel'],['style',`cursor: move;`]]);
+        header.onmouseover = dragElement;
+
+    }
+    
 
 
     function popOutVideo(){ 
