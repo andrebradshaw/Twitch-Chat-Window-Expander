@@ -2,6 +2,7 @@ async function initResizePopOutComponents(){
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
     var purple_trans = '#6725c8c7';
     var purple_light_trans = '#7d39e199';
+    var bright_green = '#43de6d';
     var icons = {
         expand: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAA7AAAAOwBeShxvQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAEwSURBVFiF7ZcxbsIwFIa/qkhNz8DK1gtE4hy9AWeAC5QFqedoVHVrl7CCGMPEDbqyMyCZAbdKXohfnDhi8S9Fsiy/939+suJngC1gHF9Gd2VK7u0ImJYCDsBJJCl6ABTARMwlwIsdTxFEa+C5h6GmJ+BHeGKAPZDbcW4pQysRHvsywM7SfTNMJco7z23unQT4Wxga4pY5TQChIZrMnQChIFzmFYAMmN9IIA+Nz8FsE7sAPnwSvXkAvCvm/3pUEp2BL+CBazl/PSCOwIz6jy0qKioqylsJsARSj5jUxvTurLpeRks8btG7X8dNDYmrmWgjralxtmR9zdtANDalocw1iBrAEOYuiArA3R8mhmF2LlWuhAHMSCwYAxsx9wmsOhougFcxV6uu9jxXW2eH1Of5BXcXq382IwkIAAAAAElFTkSuQmCC",
         shrink: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAA7AAAAOwBeShxvQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAGZSURBVFiF7de9ThtBGIXhhwgLEyGqSCahSpSegp7rQLmEdHAhKfgp00WRImjy05A2bUCioKWgChJQIBlRIJxiZ9F45Rl2ZIci8pEse2fn+87rtXfnDBxgH11Ppy6+41AwHwSQFEQPnQKDTqhJmR8Ez6/NgVEQC7jBdgHANvqhNmU+5DWnuiQD/MR8VLQcxvcKAPZCzXI0Nocfkfl8sygFMQmAR81zEOMCtDZPQbwdA+BNqXmt+M/yewyAujZ5h81GnxfxIjrewGesFhg3tYrj0OtVNH6B6xigh1M8zzS7LzCO567gpHH+RvXznNcAV/iIpUzD3QKAHdWlf5Y4/weXBf2mmmqqqf5jzYT3Dj5I57j6UfyrZd81vJd/FG/irh7oqTLcIPP60tJcmJvr1Q+eD6vhOV4aXo67quV4JRynvs0oxXOP8Q630djDcpzSkwWSUWpmuHEi2WvptN3KfFKhtBVEKr1OKpZnIXLReZIbk5EQbbZmfWwVABRtzb5lzGv1DCfoxzSr3eZ0fwZHOMO64Xv1X6qLT1j4C7C/pPHSQDGmAAAAAElFTkSuQmCC",
@@ -55,11 +56,8 @@ async function initResizePopOutComponents(){
     setCSS('twitch_pop_custom_css');
 
     function dragElement() {
-// console.log(this.getAttibute('panel_move_id'));
         let actor = this;
         var el = document.getElementById(actor.getAttribute('panel_move_id')); /*requires the trigger elm contains the ID of the elm to be moved as ['panel_move_id','TARGET_ID']*/
-//         var actor = this;
-// console.log(el);
         var pos1 = 0,    pos2 = 0,    pos3 = 0,    pos4 = 0;
         if (document.getElementById(actor.id)) document.getElementById(actor.id).onmousedown = dragMouseDown;
         else actor.onmousedown = dragMouseDown;
@@ -76,12 +74,29 @@ async function initResizePopOutComponents(){
             pos3 = e.clientX;
             pos4 = e.clientY;
             inlineStyler(el,`{z-index: ${topZIndexer()}}; top: ${(el.offsetTop - pos2)}px; left: ${(el.offsetLeft - pos1)}px; opacity: 0.85; transition: opacity 100ms;}`);
+            if(/nav/i.test(el.getAttribute('id'))){
+                updateSideNaveGridLayout();
+                resetDefaultAnnoyingTwitchStylesToNull();
+            }
+            if(/chat/i.test(el.getAttribute('id'))){
+                let chatrect = el.getElementsByClassName('scrollable-area')?.[0]?.getBoundingClientRect();
+                if(el.getBoundingClientRect().width < chatrect.width){
+                    inlineStyler(el,`{width: ${(chatrect.width)}px;}`);
+                }
+            }
+            if(/video/i.test(el.getAttribute('id'))) {
+                var head_foot_px = ['video_footer_elm','video_main_content_holder'].map(i=> document.getElementById(i).getBoundingClientRect().height).reduce((a,b)=> a+b);
+                var vidrect = document.getElementsByClassName('video-player__overlay')?.[0]?.getBoundingClientRect();
+                inlineStyler(el,`{height: ${(vidrect.height +head_foot_px)}px;}`);
+                resetDefaultAnnoyingTwitchStylesToNull();
+            }
         }
         function closeDragElement() {
             document.onmouseup = null;
             document.onmousemove = null;
             el.style.opacity = "1";
             inlineStyler(el,`{z-index: ${topZIndexer()}}`);
+            resetDefaultAnnoyingTwitchStylesToNull();
         }
     }
 
@@ -91,17 +106,14 @@ async function initResizePopOutComponents(){
         '*':(a,b=> a*b),
         '/':(a,b=> a/b),
     };
+
     function adjustElementSize(){
         var cbod = document.getElementById(this.getAttribute('resize_container'));
-        var footer = document.getElementById(cbod.getAttribute('foot_resizer_id'));
-        var is_chat = /chat/.test(this.getAttribute('class'));
-        var is_nav = /nav/.test(this.getAttribute('class'));
         var foot_height = 0; //is_nav ? 19 : 0;
         var pos1 = 0,    pos2 = 0,    pos3 = 0,    pos4 = 0;
 
         var width = cbod.getBoundingClientRect().width;
         var height = cbod.getBoundingClientRect().height;
-        var starting_left = cbod.getBoundingClientRect().left;
 
         if (document.getElementById(this.id)) document.getElementById(this.id).onmousedown = dragMouseDown;
         else this.onmousedown = dragMouseDown;
@@ -112,16 +124,31 @@ async function initResizePopOutComponents(){
             document.onmousemove = elementDrag;
         }
         function elementDrag(e) {
-            inlineStyler(cbod,`{width: ${(width - (pos3 - e.clientX))}px; height: ${((height - (pos4 - e.clientY)) - (foot_height))}px; opacity: 0.8; transiation: opacity 100ms;}`);
+            inlineStyler(cbod,`{width: ${(width - (pos3 - e.clientX))}px; height: ${((height - (pos4 - e.clientY)) - (foot_height))}px; opacity: 0.8; transiation: opacity 100ms; z-index: ${topZIndexer()};}`);
+            if(/nav/i.test(cbod.getAttribute('id'))){
+                updateSideNaveGridLayout();
+                resetDefaultAnnoyingTwitchStylesToNull();
+            }
+            if(/chat/i.test(cbod.getAttribute('id'))){
+                let chatrect = cbod.getElementsByClassName('scrollable-area')?.[0]?.getBoundingClientRect();
+                if(cbod.getBoundingClientRect().width < chatrect.width){
+                    inlineStyler(cbod,`{width: ${(chatrect.width)}px;}`);
+                }
+            }
+            if(/video/i.test(cbod.getAttribute('id'))) {
+                var head_foot_px = ['video_footer_elm','video_main_content_holder'].map(i=> document.getElementById(i).getBoundingClientRect().height).reduce((a,b)=> a+b);
+                var vidrect = document.getElementsByClassName('video-player__overlay')?.[0]?.getBoundingClientRect();
+                inlineStyler(cbod,`{height: ${(vidrect.height +head_foot_px)}px;}`);
+                resetDefaultAnnoyingTwitchStylesToNull();
+            }
         }
         function closeDragElement() {
             document.onmouseup = null;
             document.onmousemove = null;
             cbod.style.opacity = '1';
-            updateSideNaveGridLayout();
         }
     }
-
+    
     var chat_is_beside = document.getElementsByClassName('right-column--beside')?.[0];
     var chat_beside_class = chat_is_beside.getAttribute('class');
     //
@@ -129,11 +156,12 @@ async function initResizePopOutComponents(){
     // var chat_sidebar_hide_elm = document.getElementsByClassName('simplebar-track vertical')?.[0];
     window.onresize = ()=>{
         if(chat_is_hidden) chat_is_hidden.setAttribute('class','Layout-sc-nxg1ff-0 kdzwbB right-column right-column--beside');
+        resetDefaultAnnoyingTwitchStylesToNull();
     };
 
     function updateSideNaveGridLayout(){
         let grid_elm = document.getElementsByClassName('side-bar-contents')?.[0]?.firstChild?.firstChild;
-        inlineStyler(grid_elm,`{display: grid; grid-template-columns:${Array.from(document.getElementsByClassName('side-nav-section')).map(n=> ' 1fr').reduce((a,b)=> a+b)}; grid-gap: 0px;}`);
+        inlineStyler(grid_elm,`{display: grid; grid-template-columns:${Array.from(document.getElementsByClassName('side-nav-section')).map((n,i)=> i == 0 ? ` minmax(160px,300px)` : ` minmax(60px,240px)`).reduce((a,b)=> a+b)}; grid-gap: 0px;}`);
     }
     function hideAnnoyingButtons(){
         if(document.getElementsByClassName('channel-leaderboard')?.[0]) document.getElementsByClassName('channel-leaderboard')[0].style.display = 'none';
@@ -170,7 +198,7 @@ async function initResizePopOutComponents(){
         if(document.getElementById('chat_foot_resizer')) document.getElementById('chat_foot_resizer').outerHTML = '';
         var main_chat_holder = document.getElementById('main_chat_holder');
         a(main_chat_holder,[['foot_resizer_id','chat_foot_resizer']]);
-        inlineStyler(main_chat_holder,`{position: fixed; z-index: ${topZIndexer()}; height: ${window.innerHeight - 100}px;}`);
+        inlineStyler(main_chat_holder,`{position: fixed; z-index: ${topZIndexer()}; height: ${window.innerHeight - 100}px; border: 1px solid ${bright_green}; border-radius: 0.2em;}`);
         
         var main_chat_header = document.getElementById('main_chat_header');
         a(main_chat_header,[['class','mover-top-gradient']]);
@@ -184,7 +212,7 @@ async function initResizePopOutComponents(){
         let footer_elm = document.createElement('div');
         a(footer_elm,[['class','mover-bottom-gradient'],['id','chat_footer_holder']]);
         main_chat_holder.appendChild(footer_elm);
-        inlineStyler(footer_elm,`{height: 19px; display: grid; grid-template-columns: 1fr 19px;}`);
+        inlineStyler(footer_elm,`{height: 19px; display: grid; grid-template-columns: 1fr 19px; border-bottom: 2px solid ${bright_green}; border-right: 2px solid ${bright_green}; border-left: 2px solid ${bright_green}; border-bottom-left-radius: 0.2em; border-bottom-right-radius: 0.2em;}`);
 
         let footer_text = document.createElement('div');
         footer_elm.appendChild(footer_text);
@@ -198,6 +226,8 @@ async function initResizePopOutComponents(){
         foot_resizer.innerHTML = icons.resize;
         footer_elm.appendChild(foot_resizer)
         foot_resizer.onmouseover = adjustElementSize;
+
+        popOutVideo();
     }
 
     function setFollowBarPopOut(){
@@ -228,31 +258,27 @@ async function initResizePopOutComponents(){
     setFollowBarPopOut()
 
     function popOutFollowSection(elm){
-        // let main = document.getElementById('sideNav');
         var sect = document.getElementById(elm.getAttribute('popout_container_id'));
-        inlineStyler(sect,`{position: fixed; z-index: ${topZIndexer()};}`);
+        inlineStyler(sect,`{position: fixed; z-index: ${topZIndexer()}; border: 1px solid ${bright_green}; border-radius: 0.2em;}`);
 
         var resize_elm = sect?.firstChild;
         a(resize_elm,[['id','nav_grid_resize_container'],['foot_resizer_id','nav_foot_resizer']])//resize_container
-        inlineStyler(resize_elm,`{width: 450px;}`);
+        inlineStyler(resize_elm,`{width: 160px;}`);
 
         var grid_elm = sect.getElementsByClassName('side-bar-contents')?.[0]?.firstChild?.firstChild;
         a(grid_elm,[['id','nav_grid_container']]);
-        inlineStyler(grid_elm,`{display: grid; grid-template-columns:${Array.from(document.getElementsByClassName('side-nav-section')).map(n=> ' 1fr').reduce((a,b)=> a+b)}; grid-gap: 0px;}`);
-        // style="width: 400px;" 
-        // inlineStyler(document.getElementsByClassName('side-bar-contents')?.[0],`{display:grid; grid-template-columns: 1fr 1fr 1fr; grid-gap:0px;}`);
+        inlineStyler(grid_elm,`{display: grid; grid-template-columns:${Array.from(document.getElementsByClassName('side-nav-section')).map((n,i)=> i == 0 ? ` minmax(160px,300px)` : ` minmax(60px,240px)`).reduce((a,b)=> a+b)}; grid-gap: 0px;}`);
 
         Array.from(document.getElementsByClassName('side-nav-header')).forEach((sn,i)=> {
             a(sn,[['class','mover-top-gradient']]);
             inlineStyler(sn,`{display: grid; grid-template-columns: 1fr;}`);
             a(sn,[['panel_move_id',`sideNav`],['id',`nav_move_${i}`]]);
             inlineStyler(sn,`{cursor: move;}`);
-            sn.onmouseover = dragElement;//()=> dragElement('sideNav');
+            sn.onmouseover = dragElement;
         });        
         Array.from(document.getElementsByClassName('nav_text')).forEach(sn=> {
             let head_text_snake_cased = sn.innerText.toLowerCase().replace(/\s+/g,'_');
-            inlineStyler(sn,`{transform: translate(0px,6px); font-size: 10px;}`);
-            // sn.parentElement.onmouseover = dragElement;
+            inlineStyler(sn,`{transform: translate(0px,-12px); font-size: 10px;}`);
         });
         Array.from(document.getElementsByClassName('nav_pop_btn')).forEach(sn=> {
             sn.outerHTML = '';
@@ -264,14 +290,13 @@ async function initResizePopOutComponents(){
         var footer_elm = document.createElement('div');
         a(footer_elm,[['class','mover-bottom-gradient'],['id',`nav_footer_holder`]]);
         nav_input_holder.appendChild(footer_elm);
-//         resize_elm.appendChild(footer_elm);
         inlineStyler(footer_elm,`{height: 19px; display: grid; grid-template-columns: 1fr 19px;}`);
 
         var footer_text = document.createElement('div');
         footer_elm.appendChild(footer_text);
         a(footer_text,[['panel_move_id',`sideNav`],['id',`nav_footer_move`]]);
         inlineStyler(footer_text,`{width: calc(100% - 19px); cursor: move;}`);
-        // footer_text.onmouseover = dragElement;
+        footer_text.onmouseover = dragElement;
 
         var foot_resizer = document.createElement('div');
         a(foot_resizer,[['id',`nav_foot_resizer`],['class',`nav_foot_resizer foot_resizer`],['resize_container',`nav_grid_resize_container`],['style_info','display: grid; grid-template-columns: 1fr 20px; grid-gap: 10px;']]);
@@ -279,63 +304,177 @@ async function initResizePopOutComponents(){
         foot_resizer.innerHTML = icons.resize;
         footer_elm.appendChild(foot_resizer)
         foot_resizer.onmouseover = adjustElementSize;
-        popOutChannelInfoContent();
+        popOutVideo();
+
+        if(document.getElementsByClassName('right-column__toggle-visibility')?.[0]) document.getElementsByClassName('right-column__toggle-visibility')[0].outerHTML = '';
+        if(document.getElementsByClassName('channel-leaderboard')?.[0]) document.getElementsByClassName('channel-leaderboard')[0].outerHTML = '';
+        if(document.getElementsByClassName('collapse-toggle')?.[0]) Array.from(document.getElementsByClassName('collapse-toggle')).forEach(toggle=> {toggle.outerHTML = ''; } );
     }
 
-    function popOutChannelInfoContent(){
-        let channel_info_cont = document.getElementsByClassName('channel-root__info')?.[0];
-        a(channel_info_cont,[
-        ['class','mover-top-gradient'],
-        ['id','channel_information_panel'],
-        ['style',`positon: fixed; top:0px; z-index: ${topZIndexer()};overflow: auto; height:300px;`]
-        ]);
-       
-        let header = document.getElementsByClassName('channel-info-content')?.[0];
-        a(header,[['id','channel_info_header'],['panel_move_id','channel_information_panel'],['style',`cursor: move;`]]);
-        header.onmouseover = dragElement;//()=> dragElement(header);
-
-    }
     
 
+    function resetDefaultAnnoyingTwitchStylesToNull(){
+        ['channel-root__info channel-root__info--with-chat','channel-root__player-background'].forEach(tl=> {
+            a(document.getElementsByClassName(tl)?.[0],[['style','']]);
+        });
+    }
 
+
+    // function set
     function popOutVideo(){ 
         if(document.getElementById('video_mover_header')) document.getElementById('video_mover_header').outerHTML = '';
-        let follower_nav_panel = document.getElementById('nav_cont_holder_resize');
-        let follower_nav_panel_rect = follower_nav_panel.getBoundingClientRect();
+        if(document.getElementById('video_footer_elm')) document.getElementById('video_footer_elm').outerHTML = '';
+        // let follower_nav_panel = document.getElementById('nav_cont_holder_resize');
+        // let follower_nav_panel_rect = follower_nav_panel.getBoundingClientRect();
         let topnav_rect = document.getElementsByClassName('top-nav')?.[0]?.getBoundingClientRect();
+        let top_start = topnav_rect ? topnav_rect.height+5 : 80;
         let elm = document.getElementsByClassName('persistent-player')?.[0];
         a(elm,[['id','video_main_content_holder'],['default_width',elm.getBoundingClientRect().width],['default_height',elm.getBoundingClientRect().height]]);
-        inlineStyler(elm,'{position: fixed; top: '+topnav_rect.height+'px; left: '+'240'+'px; z-index:'+topZIndexer()+'; width: '+(window.innerWidth - 600)+'px;}');
+        inlineStyler(elm,'{position: fixed; top: '+(top_start)+'px; left: '+'240'+'px; z-index:'+topZIndexer()+'; width: '+(window.innerWidth - 600)+'px; max-height: calc(100vh);}');
+        
+        inlineStyler(document.getElementsByClassName('video-player__overlay')?.[0],`{border-left: 1px solid ${bright_green}; border-right: 1px solid ${bright_green};}`);
+
         let mover = document.createElement('div');
-        inlineStyler(mover,'{height: 28px; width: 100%; cursor: move; text-align: center; user-select: none;}');
-        a(mover,[['id','video_mover_header'],['class','mover-top-gradient'],['panel_resize_id','video_main_content_holder'],['panel_move_id','video_main_content_holder']]);
+        inlineStyler(mover,`{height: 28px; width: 100%; cursor: move; text-align: center; user-select: none; border-right: 1px solid ${bright_green}; border-left: 1px solid ${bright_green}; border-top: 1px solid ${bright_green}; border-top-left-radius: 0.2em; border-top-right-radius: 0.2em;}`);
+        a(mover,[['id','video_mover_header'],['class','mover-top-gradient'],['panel_resize_containerresize_id','video_main_content_holder'],['panel_move_id','video_main_content_holder']]);
+        
         elm.insertBefore(mover,elm.firstChild);
         mover.innerText = ('Watching '+ (/twitch\.tv\/(\w+)/i.exec(window.location.href)?.[1] ? /twitch\.tv\/(\w+)/i.exec(window.location.href)?.[1] : 'Video') );
         mover.onmouseover = dragElement;
 
         var video_footer_elm = document.createElement('div');
         a(video_footer_elm,[['class','mover-bottom-gradient'],['id','video_footer_elm']]);
-        inlineStyler(video_footer_elm,`{display: grid; grid-template-columns: ${Math.floor(elm.getBoundingClientRect().width - 15)}px 19px; grid-gap: 0px;  border-bottom-left-radius: 0.2em; border-bottom-right-radius: 0.2em; height: ${15}px; z-index: ${topZIndexer()};}`);
+        inlineStyler(video_footer_elm,`{display: grid; grid-template-columns: 1fr 19px; grid-gap: 0px; border-bottom: 1px solid ${bright_green}; border-right: 1px solid ${bright_green}; border-left: 1px solid ${bright_green}; border-bottom-left-radius: 0.2em; border-bottom-right-radius: 0.2em; z-index: ${topZIndexer()};}`);
         elm.appendChild(video_footer_elm);
-
+        
         var footertext = document.createElement('div');
         video_footer_elm.appendChild(footertext);
         a(footertext,[['panel_move_id','video_main_content_holder']]);
-        inlineStyler(footertext,`{width: ${Math.floor(main_chat_holder.getBoundingClientRect().width - 15)}px; cursor: move;}`);
+        inlineStyler(footertext,`{width: calc(100% - 19px); cursor: move;}`);
         footertext.onmouseover = dragElement;
 
-        var resizer = document.createElement('div');
-        a(resizer, [['panel_resize_id','video_main_content_holder'],['id','video_footer_resizer'],['panel_resize_height_id','video_main_content_holder'],['style', `width: ${15}px; height: ${15}px; background: transparent; cursor: nw-resize; text-align: left; border-radius: 0.4em;`]]);
-        video_footer_elm.appendChild(resizer);
-        resizer.innerHTML = icons.resize_hover;
-        resizer.onmouseover = adjustElementSize;
+        var foot_resizer = document.createElement('div');
+        a(foot_resizer,[['id',`video_footer_resizer`],['class',`nav_foot_resizer foot_resizer`],['resize_container',`video_main_content_holder`],['style_info','display: grid; grid-template-columns: 1fr 20px; grid-gap: 10px;']]);
+        inlineStyler(foot_resizer,`{width: 19px; cursor: nw-resize; z-index: ${topZIndexer()};}`);
+        foot_resizer.innerHTML = icons.resize;
+        video_footer_elm.appendChild(foot_resizer)
+        foot_resizer.onmouseover = adjustElementSize;
+        resetDefaultAnnoyingTwitchStylesToNull();
     }
-    // popOutVideo()
 
 
+    
+
+    function encodeUnicode(str) { /* https://attacomsian.com/blog/javascript-base64-encode-decode */
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+            function toSolidBytes(match, p1) {
+                return String.fromCharCode('0x' + p1);
+        }));
+    }
+
+    function decodeUnicode(str) {
+        return decodeURIComponent(atob(str).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+    }
+
+    var chat_window_class = 'chat-scrollable-area__message-container';
+    var chat_chat_msg_class = 'chat-line__message';
+    var chat_emote_class = 'chat-image chat-line__message--emote';
+    var chat_badge_class = 'chat-badge';
+    var chat_username_class = 'chat-author__display-name';
+    var chat_text_class = 'text-fragment';
+    var chat_mention_class = 'mention-fragment';
+    var chat_link_class = 'link-fragment';
+    var chat_highlighted = 'chat-line__message-body--highlighted';
+    var chat_cheer_amount = 'chat-line__message--cheer-amount';
+    var chat_line_class = 'chat-line__no-background';
+
+
+
+    function getLastChatObj(el) {
+        const cn = (o, s) => o?.getElementsByClassName(s);
+        let user_color = el ? window.getComputedStyle(el.getElementsByClassName(chat_username_class)?.[0]).color : null;
+        // let bg_color = el ? window.getComputedStyle(el).color : null;
+        let color_arr = /(?<=rgb\()\d+.+?(?=\))/.exec(user_color)?.[0]?.split(/,\s*/)?.map(d=> parseFloat(d))
+        const chatObj = el ? {
+            chattext: cn(el, chat_text_class) && cn(el, chat_text_class).length ? Array.from(cn(el, chat_text_class)).map(r => r?.innerText).reduce((a, b) => a + b).trim() : null,
+            user_color: user_color,
+            color_arr: color_arr,
+        } : null;
+        return chatObj;
+    }
+
+    function checkChatterColor(arr){
+        return ((arr[0] < 60 && arr[1] < 65) && !(arr[1] > 180 || arr[0] > 199) ) ? '#ffffff' : arr[1] > 180 || arr[0] > 199 ? '#000000' : false;
+    }
+    
+    function runChatFunctionsOnNewMessage() {
+        // var is_dark_theme = document.getElementsByClassName('dark-theme')?.[0];
+        // var text_border = is_dark_theme ? '#ffffff' : '#000000';
+        var chat_chat_msg_elm =   Array.from(Array.from(document.getElementsByClassName(chat_window_class))?.[0]?.parentElement?.getElementsByClassName(chat_chat_msg_class)).at(-1);
+        if (chat_chat_msg_elm && chat_chat_msg_elm.getAttribute('msg_is_read') == null) {
+            let last_chat_obj = getLastChatObj(chat_chat_msg_elm);
+            chat_chat_msg_elm.setAttribute('msg_is_read', 'read');
+            chat_chat_msg_elm.setAttribute('og_msg', encodeUnicode(last_chat_obj.chattext));
+            let new_color = checkChatterColor(last_chat_obj.color_arr); //last_chat_obj.shade_num < 60 ? '#ffffff' : '#000000';
+            // if( (last_chat_obj.shade_num < 60) || (last_chat_obj.shade_num > 180) ){
+            // console.log([new_color,last_chat_obj.color_arr])
+            if(new_color){
+                inlineStyler(chat_chat_msg_elm.getElementsByClassName(chat_username_class)?.[0],`{font-weight: 100; text-shadow: -1px 0 ${new_color}, 0 1px ${new_color}, 1px 0 ${new_color}, 0 -1px ${new_color};}`);
+            }   
+            addDeletedChatsBack();
+        }
+    }
+    
+    function addDeletedChatsBack(){
+        Array.from(document.getElementsByClassName('chat-line__message')).filter(elm=> {
+            let modded = elm.getElementsByClassName('chat-line__message--deleted-notice')?.[0];
+            if(modded){
+                modded.setAttribute('class','chat-line__message--deleted-detailed');
+                modded.innerText = elm.getAttribute('og_msg') ? decodeUnicode(elm.getAttribute('og_msg')) : '';
+            }
+        })
+    }
+
+    function initChatObserver() {
+        let chat_window_elm = document.getElementsByClassName(chat_window_class)?.[0];
+        let twitch_domObserver = new MutationObserver(() => {
+          runChatFunctionsOnNewMessage();
+        });
+        if (chat_window_elm) {
+          twitch_domObserver.observe(chat_window_elm, {
+            childList: true,
+            subtree: true
+          });
+        }
+    }
+    
+    initChatObserver();
+
+    function resetContent(){
+        setChatPopOutBtns();
+        popOutVideo();
+        initChatObserver();
+    }
+
+    const twitch_resize_page_change_monitor_object = {
+        id: 'twitch_resize_page_change_monitor_object',
+        fn: resetContent,
+        page_context: {
+            href: window.location.href
+        }
+    };
+    function monitorURLChanges(){
+        const url = window.location.href;
+        if(twitch_resize_page_change_monitor_object?.page_context?.href != url) {
+            twitch_resize_page_change_monitor_object.fn();
+            twitch_resize_page_change_monitor_object['page_context']['href'] = url;
+        }
+    }
+    document.body.onmousemove = monitorURLChanges;
 }
 
-initResizePopOutComponents();
-
-
-
+window.onload =()=>{
+    initResizePopOutComponents();
+}
