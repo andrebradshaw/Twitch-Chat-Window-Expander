@@ -463,6 +463,81 @@ window.onload =()=>{
 }
 
 
+
+var parseStringAsXset = (s) => s
+.split(/\s+\band\b\s+|(?<!\s+and\b)\s+\(|\)\s+(?!\band\b)/i)
+    .map(el=> 
+        el.split(/\s+\bor\b\s+/i).map(ii=> 
+            ii.replace(/\s*\)\s*/g,'')
+            .replace(/\s*\(\s*/g,'')
+            .replace(/\s+/g,'.{0,3}')
+            .replace(/"/g,'\\b')
+            .replace(/\*\*\*/g,'.{0,60}')
+            .replace(/\*/g,'.{0,1}'))
+                .reduce((a,b)=> a+'|'+b)).filter(el=> el).map(r=> r.replace(/\+/g,'\\+'));
+
+function permutateNear(input,joiner){
+  var nearx = /(?<=\||^)\S+?(?=\||$)/g;
+  var base = input.replace(nearx, '').replace(/[\|]+/g, '|');
+  var near_or = input.match(nearx) ? input.match(nearx).map(str=> {
+    var arr = str.split(/~/);
+    if(arr.length > 5){
+      return str.replace(/[~]+/g,'.+?');
+    }else{
+      var cont = [];
+      var containArr = [];
+      function comboLoop(arr, cont){
+        if (arr.length == 0) {
+          var row = cont.join(joiner);
+          containArr.push(row)
+        }
+        for (var i = 0; i < arr.length; i++) {
+          var x = arr.splice(i, 1);
+          cont.push(x);
+          comboLoop(arr, cont);
+          cont.pop();
+          arr.splice(i, 0, x);
+        }
+      }
+      comboLoop(arr, cont);
+      return containArr.reduce((a,b)=> a+'|'+b);
+    }
+  }).flat().reduce((a,b)=> a+'|'+b) : '';
+  return base + near_or;
+}
+
+function buildSearchSet(str,flags){
+    if(str){
+        var set = parseStringAsXset(str);
+        var xset = set.map(r=> permutateNear(r,'.{0,19}')).map(r=> tryRegExp(r.replace(/^\||\|$/g,''),flags));
+        return xset;
+    }else{return null}
+}
+
+function tryRegExp(s,f){
+    try{return new RegExp(s,f)}
+    catch(err){return err}
+}
+function hasNestedParenth(s){
+    const reg = (o, n) => o ? o[n] : '';
+    let check_p = reg(/\(.+\(/.exec(s),0);
+    let opens = check_p.match(/\(/g);
+    let closes =check_p.match(/\)/g);
+    return !opens?.length ? false : closes?.length != ( opens?.length - 1);
+}
+
+function lookupUnicodeEmotes(str,table){
+    try { 
+        let xarr = buildSearchSet(str,'i');
+        console.log(xarr);
+        return table.filter(kv=> xarr.some(x=> x.test(kv[1])))
+    }
+    catch(err){
+        console.log(err);
+        return [];
+    }
+}
+
 async function addUnicodeEmoteBtn(){
     const attr = (o, k, v) => o.setAttribute(k, v);
     const a = (l, r) => r.forEach(a => attr(l, a[0], a[1]));
@@ -489,11 +564,60 @@ async function addUnicodeEmoteBtn(){
     emote_btn.onclick = addUnicodeEmoteSearch;
 
     function addUnicodeEmoteSearch(){
+        if(document.getElementById('unicode_emote_search_cont')) document.getElementById('unicode_emote_search_cont').outerHTML = '';
         let parent = this.parentElement;
-        let cont = document.createElement('textarea');
-        
+        let cont = document.createElement('div');
+        a(cont,[['id','unicode_emote_search_cont']]);
+        inlineStyler(cont,`{position: fixed; left: ${this.parentElement.getBoundingClientRect().left}px; top: ${this.parentElement.getBoundingClientRect().top - 400}px; z-index: ${topZIndexer()}; background: #000000;}`);
+        document.body.appendChild(cont);
+
+        let emotes_cont = document.createElement('div');
+        a(emotes_cont,[['id','unicode_emotes_contaner']]);
+        inlineStyler(emotes_cont,`{display: grid; grid-template-columns: auto auto auto; border: 1px solid #772ce8c4; border-radius: 0.4em; max-height: 400px; overflow: auto;}`);
+        cont.appendChild(emotes_cont);
+
+        let textarea = document.createElement('textarea');
+        a(textarea,[['id','unicode_emote_textarea_search']]);
+        cont.appendChild(textarea);
+        inlineStyler(cont,`{border: 1px solid #772ce8c4; border-radius: 0.4em; background: #7c7c7c;}`);
+        textarea.onkeyup = (e)=> {
+console.log(e)
+            if(textarea.value?.length > 3){
+                let results = lookupUnicodeEmotes(textarea.value?.trim(),fileArray);
+                addResultsToBox(results.slice(0,21));
+                console.log(results);
+            }
+        };
     }
+    function addResultsToBox(results){
+        let cont = document.getElementById('unicode_emotes_contaner');
+        results.forEach(kv=> {
+            let emote = document.createElement('div');
+            inlineStyler(emote,`{font-size: 1.6em; cursor: pointer;}`);
+            cont.appendChild(emote);
+            emote.innerText = kv[0];
+            emote.onclick = domplate;
+        });
+    }
+    function domplate() {
+      var el = document.createElement('textarea');
+      document.body.appendChild(el);
+      el.value = this.innerText;
+      el.select();
+      document.execCommand('copy');
+      el.outerHTML = '';
+    }
+    
 }
 
 
 addUnicodeEmoteBtn()
+
+
+// function createUnicodeEmoteSearchCont(parent){
+// //     lookupUnicodeEmotes('fire')
+//     let cont = document.createElement('div');
+//     inlineStyler(cont,`{border: 1px; solid #772ce8c4; border-radius: 0.4em;}`);
+//     parent.appendChild(cont);
+    
+// }
