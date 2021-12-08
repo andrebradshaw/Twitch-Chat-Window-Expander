@@ -347,6 +347,7 @@ function setpopoutiframe(){
 
                 let chat_header = channel_chat_iframe?.contentDocument?.getElementById('chat-room-header-label');
                 chat_header.innerText = `${channel_name} STREAM CHAT`;
+initChatObserver(channel_chat_iframe?.contentDocument);
                 // setCSS(channel_chat_iframe?.contentDocument,'twitch_pop_custom_css'); //this needs to be changed. issue with passing in arguments vs set state 
                 break;
             }
@@ -697,91 +698,92 @@ function setpopoutiframe(){
 //     var chat_cheer_amount = 'chat-line__message--cheer-amount';
 //     var chat_line_class = 'chat-line__no-background';
 
-//     function fixLinkInChat(elm){
-//         var regexPrep = (s) => s.replace(/\/|\$|\(|\)|\^|\[|\]|\{|\}/g, t=> '\\'+t);
-//         let text_frags = Array.from(elm.getElementsByClassName('text-fragment'))
-//         let full_link = /http(s|):\/\/\S+/.exec(elm.getElementsByClassName('text-fragment')?.[0].parentElement.innerText)?.[0];
-//         let orginal_link_frag = elm.getElementsByClassName('link-fragment')?.[0];
-//         /*TODO - make this handle multiple links*/
-//         if(orginal_link_frag && orginal_link_frag?.innerText != full_link){
-//             let hanging_link_frags = text_frags.filter(x=> full_link.match(regexPrep(x.innerText)))
-//             orginal_link_frag.setAttribute('href',full_link);
-//             orginal_link_frag.innerText = full_link;
-//             hanging_link_frags.forEach(frag=> {frag.outerHTML = '';});
-//         }
-//         return elm;
-//     }
+    function fixLinkInChat(elm){
+        var regexPrep = (s) => s.replace(/\/|\$|\(|\)|\^|\[|\]|\{|\}/g, t=> '\\'+t);
+        let text_frags = Array.from(elm.getElementsByClassName('text-fragment'))
+        let full_link = /http(s|):\/\/\S+/.exec(elm.getElementsByClassName('text-fragment')?.[0].parentElement.innerText)?.[0];
+        let orginal_link_frag = elm.getElementsByClassName('link-fragment')?.[0];
+        /*TODO - make this handle multiple links*/
+        if(orginal_link_frag && orginal_link_frag?.innerText != full_link){
+            let hanging_link_frags = text_frags.filter(x=> full_link.match(regexPrep(x.innerText)))
+            orginal_link_frag.setAttribute('href',full_link);
+            orginal_link_frag.innerText = full_link;
+            hanging_link_frags.forEach(frag=> {frag.outerHTML = '';});
+        }
+        return elm;
+    }
 
-//     function getLastChatObj(el) {
-//         let user_color = el ? window.getComputedStyle(el.getElementsByClassName(chat_username_class)?.[0]).color : null;
-//         // let bg_color = el ? window.getComputedStyle(el).color : null;
-//         let color_arr = /(?<=rgb\()\d+.+?(?=\))/.exec(user_color)?.[0]?.split(/,\s*/)?.map(d=> parseFloat(d));
-//         let full_raw_text = el?.getElementsByClassName(chat_text_class)?.[0]?.parentElement?.innerText;
-//         const chatObj = el ? {
-//             chattext: full_raw_text,
-//             user_color: user_color,
-//             color_arr: color_arr,
-//             bg_color_arr: /(?<=rgb\()\d+.+?(?=\))/.exec(window.getComputedStyle(el).color)?.[0]?.split(/,\s*/)?.map(d=> parseFloat(d)),
-//         } : null;
-//         return chatObj;
-//     }
+    function getLastChatObj(el) {
+        let user_color = el && el?.getElementsByClassName('chat-author__display-name')?.[0] ? window.getComputedStyle(el.getElementsByClassName('chat-author__display-name')?.[0]).color : null;
+        // let bg_color = el ? window.getComputedStyle(el).color : null;
+        let color_arr = /(?<=rgb\()\d+.+?(?=\))/.exec(user_color)?.[0]?.split(/,\s*/)?.map(d=> parseFloat(d));
+        let full_raw_text = el?.getElementsByClassName('text-fragment')?.[0]?.parentElement?.innerText;
+        const chatObj = el ? {
+            chattext: full_raw_text,
+            user_color: user_color,
+            color_arr: color_arr,
+            bg_color_arr: /(?<=rgb\()\d+.+?(?=\))/.exec(window.getComputedStyle(el).color)?.[0]?.split(/,\s*/)?.map(d=> parseFloat(d)),
+        } : null;
+        return chatObj;
+    }
 
-//     function checkChatterColor(arr){
-//         return ((arr[0] < 60 && arr[1] < 65) && !(arr[1] > 180 || arr[0] > 199) ) ? '#ffffff' : arr[1] > 180 || arr[0] > 199 ? '#000000' : false;
-//     }
-//     function chatterIsAssholeFontColor(arr,mode_state_arr){
-//         let lightmode = [239, 239, 241];
-//         let darkmode = [14, 14, 16];
-//         let is_darkmode = mode_state_arr.reduce((a,b)=> a+b) == [239, 239, 241].reduce((a,b)=> a+b);
-//         let is_lightmode = mode_state_arr.reduce((a,b)=> a+b) == [14, 14, 16].reduce((a,b)=> a+b);
-//         if(is_lightmode) return arr.every((n,i)=> ( 
-//             lightmode[i] <= (n+10) && lightmode[i] >= (n-10) 
-//             )
-//         );
-//         if(is_darkmode) return arr.every((n,i)=> ( darkmode[i] <= (n+10) && darkmode[i] >= (n-10) ));
-//     }
-//     function runChatFunctionsOnNewMessage() {
-//         // var is_dark_theme = document.getElementsByClassName('dark-theme')?.[0];
-//         // var text_border = is_dark_theme ? '#ffffff' : '#000000';
-//         var chat_chat_msg_elm =   Array.from(Array.from(document.getElementsByClassName(chat_window_class))?.[0]?.parentElement?.getElementsByClassName(chat_chat_msg_class)).at(-1);
-//         if (chat_chat_msg_elm && chat_chat_msg_elm.getAttribute('msg_is_read') == null) {
-//             let last_chat_obj = getLastChatObj(chat_chat_msg_elm);
-//             chat_chat_msg_elm.setAttribute('msg_is_read', 'read');
-//             chat_chat_msg_elm.setAttribute('og_msg', encodeUnicode(last_chat_obj.chattext));
-//             // let new_color = checkChatterColor(last_chat_obj.color_arr); //last_chat_obj.shade_num < 60 ? '#ffffff' : '#000000';
-//             // if( (last_chat_obj.shade_num < 60) || (last_chat_obj.shade_num > 180) ){
-//             let chatter_is_asshole = chatterIsAssholeFontColor(last_chat_obj.color_arr,last_chat_obj.bg_color_arr);
-//             if(chatter_is_asshole){
-//                 console.log('changing color')
-//                 inlineStyler(chat_chat_msg_elm.getElementsByClassName(chat_username_class)?.[0],`{font-weight: 100; color: #399131;}`);
-//             }
-//             fixLinkInChat(chat_chat_msg_elm);
-//             addDeletedChatsBack();
-//         }
-//     }
+    function checkChatterColor(arr){
+        return ((arr[0] < 60 && arr[1] < 65) && !(arr[1] > 180 || arr[0] > 199) ) ? '#ffffff' : arr[1] > 180 || arr[0] > 199 ? '#000000' : false;
+    }
+    function chatterIsAssholeFontColor(arr,mode_state_arr){
+        let lightmode = [239, 239, 241];
+        let darkmode = [14, 14, 16];
+        let is_darkmode = mode_state_arr.reduce((a,b)=> a+b) == [239, 239, 241].reduce((a,b)=> a+b);
+        let is_lightmode = mode_state_arr.reduce((a,b)=> a+b) == [14, 14, 16].reduce((a,b)=> a+b);
+        if(is_lightmode) return arr.every((n,i)=> ( 
+            lightmode[i] <= (n+10) && lightmode[i] >= (n-10) 
+            )
+        );
+        if(is_darkmode) return arr.every((n,i)=> ( darkmode[i] <= (n+10) && darkmode[i] >= (n-10) ));
+    }
+    function runChatFunctionsOnNewMessage(parent_elm) {
+        // var is_dark_theme = document.getElementsByClassName('dark-theme')?.[0];
+        // var text_border = is_dark_theme ? '#ffffff' : '#000000';
+        var chat_chat_msg_elm =   Array.from(Array.from(parent_elm.getElementsByClassName('chat-scrollable-area__message-container'))?.[0]?.parentElement?.getElementsByClassName('chat-line__message')).at(-1);
+        if (chat_chat_msg_elm && chat_chat_msg_elm.getAttribute('msg_is_read') == null) {
+            let last_chat_obj = getLastChatObj(chat_chat_msg_elm);
+            chat_chat_msg_elm.setAttribute('msg_is_read', 'read');
+            chat_chat_msg_elm.setAttribute('og_msg', encodeUnicode(last_chat_obj.chattext));
+            // let new_color = checkChatterColor(last_chat_obj.color_arr); //last_chat_obj.shade_num < 60 ? '#ffffff' : '#000000';
+            // if( (last_chat_obj.shade_num < 60) || (last_chat_obj.shade_num > 180) ){
+            let chatter_is_asshole = chatterIsAssholeFontColor(last_chat_obj.color_arr,last_chat_obj.bg_color_arr);
+            if(chatter_is_asshole){
+                console.log('changing color')
+                inlineStyler(chat_chat_msg_elm.getElementsByClassName('chat-author__display-name')?.[0],`{font-weight: 100; color: #399131;}`);
+            }
+            fixLinkInChat(chat_chat_msg_elm);
+console.log(last_chat_obj);
+            addDeletedChatsBack(parent_elm);
+        }
+    }
     
-//     function addDeletedChatsBack(){
-//         Array.from(document.getElementsByClassName('chat-line__message')).filter(elm=> {
-//             let modded = elm.getElementsByClassName('chat-line__message--deleted-notice')?.[0];
-//             if(modded){
-//                 modded.setAttribute('class','chat-line__message--deleted-detailed');
-//                 modded.innerText = elm.getAttribute('og_msg') ? decodeUnicode(elm.getAttribute('og_msg')) : '';
-//             }
-//         })
-//     }
+    function addDeletedChatsBack(parent_elm){
+        Array.from(parent_elm.getElementsByClassName('chat-line__message')).filter(elm=> {
+            let modded = elm.getElementsByClassName('chat-line__message--deleted-notice')?.[0];
+            if(modded){
+                modded.setAttribute('class','chat-line__message--deleted-detailed');
+                modded.innerText = elm.getAttribute('og_msg') ? decodeUnicode(elm.getAttribute('og_msg')) : '';
+            }
+        })
+    }
 
-//     function initChatObserver() {
-//         let chat_window_elm = document.getElementsByClassName(chat_window_class)?.[0];
-//         let twitch_domObserver = new MutationObserver(() => {
-//           runChatFunctionsOnNewMessage();
-//         });
-//         if (chat_window_elm) {
-//           twitch_domObserver.observe(chat_window_elm, {
-//             childList: true,
-//             subtree: true
-//           });
-//         }
-//     }
+    function initChatObserver(parent_elm) {
+        let chat_window_elm = parent_elm.getElementsByClassName('chat-scrollable-area__message-container')?.[0];
+        let twitch_domObserver = new MutationObserver(() => {
+          runChatFunctionsOnNewMessage();
+        });
+        if (chat_window_elm) {
+          twitch_domObserver.observe(chat_window_elm, {
+            childList: true,
+            subtree: true
+          });
+        }
+    }
     
 //     initChatObserver();
 //     killAdd();
@@ -1017,6 +1019,6 @@ function setpopoutiframe(){
 
 }
 
-window.onload =()=>{
+// window.onload =()=>{
     initResizePopOutComponents();
-}
+// }
