@@ -303,9 +303,14 @@ function setpopoutiframe(){
     
     let iframe_header = document.createElement('div');
     a(iframe_header,[['id',`${channel_name}_extra_chat_head`],['panel_move_id',`${channel_name}_extra_chat_cont`],['class','mover-top-gradient']]);
-    inlineStyler(iframe_header,`{height: 40px; transform: translate(0px,40px); width: calc(100% - 48px); border-top-left-radius: 0.4em; background: linear-gradient(to top left, transparent, transparent, #772ce885); cursor: move;}`);
+    inlineStyler(iframe_header,`{display:grid; grid-template-columns: 28px 1fr; height: 40px; transform: translate(0px,40px); width: calc(100% - 48px); border-top-left-radius: 0.4em; background: linear-gradient(to top left, transparent, transparent, #772ce885); cursor: move;}`);
     iframe_cont.appendChild(iframe_header);
     iframe_header.onmouseover = dragElement;
+
+    let close_iframe = document.createElement('div');
+    iframe_header.appendChild(close_iframe);
+    close_iframe.onclick = ()=> {iframe_cont.outerHTML = ''; };
+    close_iframe.innerText = 'x';
 
     let iframe = document.createElement('iframe');
     a(iframe,[['id',`${channel_name}_iframe`],['src',`https://www.twitch.tv/popout/${channel_name}/chat?popout=`]]);
@@ -338,10 +343,11 @@ function setpopoutiframe(){
 
 
     async function updatepalceholder(channel_name){
-        for(let i=0; i<50; i++){
+        for(let i=0; i<250; i++){
             await delay(111);
             let channel_chat_iframe = document.getElementById(`${channel_name}_iframe`);
-            if(channel_chat_iframe?.contentDocument && channel_chat_iframe?.contentDocument?.getElementsByTagName('textarea')?.[0]){
+console.log(i);
+            if(channel_chat_iframe?.contentDocument && channel_chat_iframe?.contentDocument?.getElementsByTagName('textarea')?.[0] && channel_chat_iframe?.contentDocument?.getElementsByClassName('chat-room__content')?.[0]){
                 let chat_textarea = Array.from(channel_chat_iframe?.contentDocument?.getElementsByTagName('textarea'))?.filter(i=> i.getAttribute('data-a-target') == 'chat-input')?.[0];
                 a(chat_textarea,[['placeholder',`Send a message (${channel_name})`]]);
 
@@ -673,18 +679,18 @@ initChatObserver(channel_chat_iframe?.contentDocument);
 
 
 
-//     function encodeUnicode(str) { /* https://attacomsian.com/blog/javascript-base64-encode-decode */
-//         return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
-//             function toSolidBytes(match, p1) {
-//                 return String.fromCharCode('0x' + p1);
-//         }));
-//     }
+    function encodeUnicode(str) { /* https://attacomsian.com/blog/javascript-base64-encode-decode */
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+            function toSolidBytes(match, p1) {
+                return String.fromCharCode('0x' + p1);
+        }));
+    }
 
-//     function decodeUnicode(str) {
-//         return decodeURIComponent(atob(str).split('').map(function (c) {
-//             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-//         }).join(''));
-//     }
+    function decodeUnicode(str) {
+        return decodeURIComponent(atob(str).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+    }
 
 //     var chat_window_class = 'chat-scrollable-area__message-container';
 //     var chat_chat_msg_class = 'chat-line__message';
@@ -701,8 +707,8 @@ initChatObserver(channel_chat_iframe?.contentDocument);
     function fixLinkInChat(elm){
         var regexPrep = (s) => s.replace(/\/|\$|\(|\)|\^|\[|\]|\{|\}/g, t=> '\\'+t);
         let text_frags = Array.from(elm.getElementsByClassName('text-fragment'))
-        let full_link = /http(s|):\/\/\S+/.exec(elm.getElementsByClassName('text-fragment')?.[0].parentElement.innerText)?.[0];
-        let orginal_link_frag = elm.getElementsByClassName('link-fragment')?.[0];
+        let full_link = /http(s|):\/\/\S+/.exec(elm.getElementsByClassName('text-fragment')?.[0]?.parentElement?.innerText)?.[0];
+        let orginal_link_frag = elm?.getElementsByClassName('link-fragment')?.[0];
         /*TODO - make this handle multiple links*/
         if(orginal_link_frag && orginal_link_frag?.innerText != full_link){
             let hanging_link_frags = text_frags.filter(x=> full_link.match(regexPrep(x.innerText)))
@@ -775,7 +781,7 @@ console.log(last_chat_obj);
     function initChatObserver(parent_elm) {
         let chat_window_elm = parent_elm.getElementsByClassName('chat-scrollable-area__message-container')?.[0];
         let twitch_domObserver = new MutationObserver(() => {
-          runChatFunctionsOnNewMessage();
+          runChatFunctionsOnNewMessage(parent_elm);
         });
         if (chat_window_elm) {
           twitch_domObserver.observe(chat_window_elm, {
